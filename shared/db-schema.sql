@@ -1,0 +1,73 @@
+-- Create schema for each microservice
+CREATE SCHEMA IF NOT EXISTS patient;
+CREATE SCHEMA IF NOT EXISTS doctor;
+CREATE SCHEMA IF NOT EXISTS appointment;
+
+-- Patient table
+CREATE TABLE IF NOT EXISTS patient.patients (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(20),
+  date_of_birth DATE NOT NULL,
+  address TEXT,
+  medical_history TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Doctor table
+CREATE TABLE IF NOT EXISTS doctor.doctors (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  specialization VARCHAR(100) NOT NULL,
+  license_number VARCHAR(50) UNIQUE NOT NULL,
+  years_of_experience INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Appointment table (with foreign keys to patient and doctor)
+CREATE TABLE IF NOT EXISTS appointment.appointments (
+  id SERIAL PRIMARY KEY,
+  patient_id INTEGER NOT NULL,
+  doctor_id INTEGER NOT NULL,
+  appointment_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  duration_minutes INTEGER NOT NULL DEFAULT 30,
+  status VARCHAR(20) NOT NULL DEFAULT 'scheduled', -- scheduled, completed, cancelled
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_patient FOREIGN KEY (patient_id) REFERENCES patient.patients(id) ON DELETE CASCADE,
+  CONSTRAINT fk_doctor FOREIGN KEY (doctor_id) REFERENCES doctor.doctors(id) ON DELETE CASCADE
+);
+
+-- Create indexes for better query performance
+CREATE INDEX idx_appointment_patient ON appointment.appointments(patient_id);
+CREATE INDEX idx_appointment_doctor ON appointment.appointments(doctor_id);
+CREATE INDEX idx_appointment_date ON appointment.appointments(appointment_date);
+
+-- Add some example triggers for updated_at columns
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER update_patient_modtime
+  BEFORE UPDATE ON patient.patients
+  FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+CREATE TRIGGER update_doctor_modtime
+  BEFORE UPDATE ON doctor.doctors
+  FOR EACH ROW EXECUTE FUNCTION update_modified_column();
+
+CREATE TRIGGER update_appointment_modtime
+  BEFORE UPDATE ON appointment.appointments
+  FOR EACH ROW EXECUTE FUNCTION update_modified_column();
