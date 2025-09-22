@@ -2,7 +2,7 @@
  * Centralized file for defining cross-service associations between Sequelize models
  * This helps maintain proper relationships when models are in different services/schemas
  */
-const { sequelize } = require('./sequelize');
+// const { sequelize } = require('./sequelize');
 
 /**
  * Setup cross-service associations between models
