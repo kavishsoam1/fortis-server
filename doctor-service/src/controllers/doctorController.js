@@ -1,9 +1,10 @@
 const DoctorModel = require('../models/doctorModel');
 const ScheduleModel = require('../models/scheduleModel');
 const TimeOffModel = require('../models/timeOffModel');
-const DepartmentModel = require('../models/departmentModel');
-const SpecialtyModel = require('../models/specialtyModel');
+// const DepartmentModel = require('../models/departmentModel');
+// const SpecialtyModel = require('../models/specialtyModel');
 const { ApiError } = require('../../../shared/error-handler');
+const { logger } = require('../../../shared/logger');
 
 class DoctorController {
   /**
@@ -314,7 +315,7 @@ class DoctorController {
       }
       
       const deleted = await ScheduleModel.delete(schedule_id);
-      
+      logger.info(`Deleted schedule entry with id ${deleted?.schedule_id}`);
       res.status(200).json({
         success: true,
         message: `Schedule entry with id ${schedule_id} deleted successfully`
@@ -409,7 +410,7 @@ class DoctorController {
       }
       
       const deleted = await TimeOffModel.delete(time_off_id);
-      
+      logger.info(`Deleted time off entry with id ${deleted?.time_off_id}`);
       res.status(200).json({
         success: true,
         message: `Time off entry with id ${time_off_id} deleted successfully`

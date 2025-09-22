@@ -1,6 +1,7 @@
 const { Appointment, AppointmentAudit } = require('./sequelize');
 const { sequelize } = require('../../../shared/sequelize');
 const { Op } = require('sequelize');
+const { logger } = require('../../utils/logger');
 
 /**
  * Appointment Model - Handles database operations for appointments
@@ -381,8 +382,8 @@ class AppointmentModel {
       });
       
       // Emit event (in real implementation, this would use a message broker)
-      console.log(`Event: appointment.${status}, appointment_id: ${id}`);
-      
+      logger.info(`Event: appointment.${status}, appointment_id: ${id}`);
+
       return updatedAppointment;
     }
     
@@ -419,8 +420,8 @@ class AppointmentModel {
       });
       
       // Emit event (in real implementation, this would use a message broker)
-      console.log(`Event: appointment.cancelled, appointment_id: ${id}`);
-      
+      logger.info(`Event: appointment.cancelled, appointment_id: ${id}`);
+
       return true;
     }
     
@@ -511,8 +512,8 @@ class AppointmentModel {
       });
       
       // Emit event (in real implementation, this would use a message broker)
-      console.log(`Event: appointment.payment.${paymentStatus}, appointment_id: ${id}`);
-      
+      logger.info(`Event: appointment.payment.${paymentStatus}, appointment_id: ${id}`);
+
       return updatedAppointment;
     }
     

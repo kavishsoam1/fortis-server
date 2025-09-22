@@ -1,8 +1,8 @@
 const { Sequelize } = require('sequelize');
 const dotenv = require('dotenv');
 const winston = require('winston');
-const path = require('path');
-const fs = require('fs');
+// const path = require('path');
+// const fs = require('fs');
 
 // Load environment variables
 dotenv.config();

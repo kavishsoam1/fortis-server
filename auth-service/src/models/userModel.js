@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { User, OTP, UserSession } = require('./sequelize');
-const { sequelize } = require('../../../shared/sequelize');
+// const { sequelize } = require('../../../shared/sequelize');
 const { Op } = require('sequelize');
 
 class UserModel {

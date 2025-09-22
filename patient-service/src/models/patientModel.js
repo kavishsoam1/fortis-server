@@ -1,6 +1,6 @@
 const { Patient } = require('./sequelize');
 const { sequelize } = require('../../../shared/sequelize');
-const { Op } = require('sequelize');
+// const { Op } = require('sequelize');
 
 class PatientModel {
   /**

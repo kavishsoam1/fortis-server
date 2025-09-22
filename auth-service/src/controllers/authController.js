@@ -3,7 +3,8 @@ const { ApiError } = require('../../../shared/error-handler');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require('../../../shared/logger');
+// const { v4: uuidv4 } = require('uuid');
 
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
@@ -33,7 +34,7 @@ class AuthController {
           to: phone
         });
       } else {
-        console.log(`Development mode: OTP for ${phone} is ${otp}`);
+        logger.info(`Development mode: OTP for ${phone} is ${otp}`);
       }
       
       res.status(200).json({

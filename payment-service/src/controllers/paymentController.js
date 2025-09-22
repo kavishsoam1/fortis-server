@@ -412,7 +412,7 @@ class PaymentController {
         payment_id: payment.payment_id
       };
     } catch (error) {
-      console.error('Error handling successful payment webhook:', error);
+      logger.error('Error handling successful payment webhook:', error);
       return { status: 'error', message: error.message };
     }
   }
@@ -454,7 +454,7 @@ class PaymentController {
         payment_id: payment.payment_id
       };
     } catch (error) {
-      console.error('Error handling failed payment webhook:', error);
+      logger.error('Error handling failed payment webhook:', error);
       return { status: 'error', message: error.message };
     }
   }

@@ -18,7 +18,7 @@
     "postinstall": "node setup-husky.js || echo 'Husky setup skipped (optional)'",
     "setup-husky": "node setup-husky.js",
     "setup-repo": "node setup-repo.js",
-     "lint": "eslint --ext .js auth-service/src patient-service/src doctor-service/src appointment-service/src profile-service/src payment-service/src registration-service/src shared/",
+    "lint": "eslint --ext .js auth-service/src patient-service/src doctor-service/src appointment-service/src profile-service/src payment-service/src registration-service/src shared/",
     "lint:fix": "eslint --fix --ext .js auth-service/src patient-service/src doctor-service/src appointment-service/src profile-service/src payment-service/src registration-service/src shared/",
     "start": "npm-run-all --parallel start:*",
     "start:auth": "npm run dev --workspace=auth-service",

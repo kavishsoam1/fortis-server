@@ -1,6 +1,7 @@
 const AppointmentModel = require('../models/appointmentModel');
 const { ApiError } = require('../../../shared/error-handler');
-const axios = require('axios');
+// const axios = require('axios');
+const { logger } = require('../../../shared/logger');
 
 class AppointmentController {
   /**
@@ -36,9 +37,8 @@ class AppointmentController {
         new_values: appointment,
         changed_by: user_id
       });
-      
-      console.log(`Event: appointment.booked, appointment_id: ${appointment.appointment_id}`);
-      
+      logger.info(`Event: appointment.booked, appointment_id: ${appointment.appointment_id}`);
+
       res.status(201).json({
         success: true,
         data: appointment
@@ -245,11 +245,11 @@ class AppointmentController {
       const updatedAppointment = await AppointmentModel.update(id, appointmentData, user_id);
       
       if (appointmentData.status && appointmentData.status !== existingAppointment.status) {
-        console.log(`Event: appointment.${appointmentData.status}, appointment_id: ${id}`);
+        logger.info(`Event: appointment.${appointmentData.status}, appointment_id: ${id}`);
       }
       
       if (appointmentData.appointment_date && appointmentData.appointment_date !== existingAppointment.appointment_date) {
-        console.log(`Event: appointment.rescheduled, appointment_id: ${id}`);
+        logger.info(`Event: appointment.rescheduled, appointment_id: ${id}`);
       }
       
       res.status(200).json({
