@@ -22,7 +22,7 @@ module.exports = {
     ],
     'subject-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
-    'type-case': [2, 'always', 'lower'],
+    'type-case': [2, 'always', 'lower-case'],
     'type-empty': [2, 'never'],
     'scope-case': [2, 'always', 'lower'],
     'jira-ticket': [2, 'always']
@@ -30,11 +30,11 @@ module.exports = {
   plugins: [
     {
       rules: {
-        'jira-ticket': ({ subject }) => {
-          const jiraTicketRegex = /\bJIRA-[0-9]+\b/;
+        'jira-ticket': ({ ticket }) => {
+          // const jiraTicketRegex = /\bJIRA-[0-9]+\b/;
           return [
-            jiraTicketRegex.test(subject),
-            'Your commit message must contain a JIRA ticket reference (e.g. JIRA-1234)'
+            ticket && ticket.trim().length > 0,
+            'Your commit message must contain type of [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert] and a JIRA ticket reference (e.g. JIRA-1234)'
           ];
         }
       }
