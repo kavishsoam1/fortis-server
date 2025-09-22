@@ -150,7 +150,7 @@ module.exports = {
     });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface, /*Sequelize*/) {
     // Drop tables in reverse order to avoid foreign key constraints
     await queryInterface.dropTable({ tableName: 'user_sessions', schema: 'auth' });
     await queryInterface.dropTable({ tableName: 'otps', schema: 'auth' });

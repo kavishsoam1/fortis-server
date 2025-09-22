@@ -11,7 +11,7 @@ module.exports = {
     dialectOptions: {
       multipleStatements: true
     },
-    logging: console.log
+    // logging: console.log
   },
   test: {
     username: process.env.POSTGRES_USER || 'postgres',

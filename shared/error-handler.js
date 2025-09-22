@@ -14,7 +14,7 @@ class ApiError extends Error {
   }
 }
 
-const errorHandler = (err, req, res, _next) => {
+const errorHandler = (err, req, res, /*next*/) => {
   const { statusCode = 500, message = 'Server Error' } = err;
   
   res.status(statusCode).json({

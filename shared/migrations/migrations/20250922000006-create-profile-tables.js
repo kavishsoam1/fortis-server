@@ -152,7 +152,7 @@ module.exports = {
     });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface, /*Sequelize*/) {
     await queryInterface.dropTable({ tableName: 'member_health_data', schema: 'profile' });
     await queryInterface.dropTable({ tableName: 'members', schema: 'profile' });
   }

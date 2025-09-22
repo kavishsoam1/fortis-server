@@ -272,7 +272,7 @@ module.exports = {
     });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface, /*Sequelize*/) {
     await queryInterface.dropTable({ tableName: 'time_off', schema: 'doctor' });
     await queryInterface.dropTable({ tableName: 'schedules', schema: 'doctor' });
     await queryInterface.dropTable({ tableName: 'doctors', schema: 'doctor' });

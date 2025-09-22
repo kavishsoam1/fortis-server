@@ -169,7 +169,7 @@ module.exports = {
     });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down (queryInterface, /*Sequelize*/) {
     await queryInterface.dropTable({ tableName: 'payments', schema: 'payment' });
     await queryInterface.dropTable({ tableName: 'invoices', schema: 'payment' });
   }
