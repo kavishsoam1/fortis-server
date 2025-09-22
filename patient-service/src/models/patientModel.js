@@ -1,8 +1,7 @@
-const db = require('../../../shared/db');
+const { Patient } = require('./sequelize');
+const { sequelize } = require('../../../shared/sequelize');
+const { Op } = require('sequelize');
 
-/**
- * Patient Model - Handles database operations for patients
- */
 class PatientModel {
   /**
    * Create a new patient record
@@ -10,18 +9,9 @@ class PatientModel {
    * @returns {Promise<Object>} Created patient
    */
   static async create(patientData) {
-    const { first_name, last_name, email, phone, date_of_birth, address, medical_history } = patientData;
-    
-    const query = `
-      INSERT INTO patient.patients (
-        first_name, last_name, email, phone, date_of_birth, address, medical_history
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *
-    `;
-    
-    const values = [first_name, last_name, email, phone, date_of_birth, address, medical_history];
-    const result = await db.query(query, values);
-    return result.rows[0];
+    // Create patient with Sequelize
+    const patient = await Patient.create(patientData);
+    return patient;
   }
   
   /**
@@ -31,14 +21,14 @@ class PatientModel {
    * @returns {Promise<Array>} Array of patients
    */
   static async findAll(limit = 100, offset = 0) {
-    const query = `
-      SELECT * FROM patient.patients
-      ORDER BY created_at DESC
-      LIMIT $1 OFFSET $2
-    `;
+    // Get all patients with pagination using Sequelize
+    const patients = await Patient.findAll({
+      order: [['created_at', 'DESC']],
+      limit,
+      offset
+    });
     
-    const result = await db.query(query, [limit, offset]);
-    return result.rows;
+    return patients;
   }
   
   /**
@@ -47,9 +37,8 @@ class PatientModel {
    * @returns {Promise<Object|null>} Patient data or null if not found
    */
   static async findById(id) {
-    const query = `SELECT * FROM patient.patients WHERE id = $1`;
-    const result = await db.query(query, [id]);
-    return result.rows[0] || null;
+    // Find patient by primary key using Sequelize
+    return await Patient.findByPk(id);
   }
   
   /**
@@ -59,37 +48,17 @@ class PatientModel {
    * @returns {Promise<Object|null>} Updated patient or null if not found
    */
   static async update(id, patientData) {
-    // Extract only the fields that are provided
-    const fields = [];
-    const values = [];
-    let paramCount = 1;
+    // Update patient using Sequelize
+    const [updatedRowsCount, updatedRows] = await Patient.update(patientData, {
+      where: { id },
+      returning: true
+    });
     
-    for (const [key, value] of Object.entries(patientData)) {
-      if (value !== undefined && [
-        'first_name', 'last_name', 'email', 'phone', 
-        'date_of_birth', 'address', 'medical_history'
-      ].includes(key)) {
-        fields.push(`${key} = $${paramCount}`);
-        values.push(value);
-        paramCount++;
-      }
+    if (updatedRowsCount === 0) {
+      return null;
     }
     
-    if (fields.length === 0) {
-      return null; // No fields to update
-    }
-    
-    values.push(id); // Add ID as the last parameter
-    
-    const query = `
-      UPDATE patient.patients
-      SET ${fields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-    
-    const result = await db.query(query, values);
-    return result.rows[0] || null;
+    return updatedRows[0];
   }
   
   /**
@@ -98,9 +67,12 @@ class PatientModel {
    * @returns {Promise<boolean>} True if deleted, false if not found
    */
   static async delete(id) {
-    const query = `DELETE FROM patient.patients WHERE id = $1 RETURNING id`;
-    const result = await db.query(query, [id]);
-    return result.rowCount > 0;
+    // Delete patient using Sequelize
+    const deletedCount = await Patient.destroy({
+      where: { id }
+    });
+    
+    return deletedCount > 0;
   }
   
   /**
@@ -109,16 +81,30 @@ class PatientModel {
    * @returns {Promise<Array>} Array of appointments
    */
   static async getAppointments(id) {
-    const query = `
-      SELECT a.*, d.first_name as doctor_first_name, d.last_name as doctor_last_name
-      FROM appointment.appointments a
-      JOIN doctor.doctors d ON a.doctor_id = d.id
-      WHERE a.patient_id = $1
-      ORDER BY a.appointment_date DESC
-    `;
+    // Get all appointments for the patient with doctor information
+    const appointments = await sequelize.models.Appointment.findAll({
+      where: { member_id: id },
+      include: [{
+        model: sequelize.models.Doctor,
+        as: 'Doctor',
+        attributes: ['first_name', 'last_name']
+      }],
+      order: [['appointment_date', 'DESC']]
+    });
     
-    const result = await db.query(query, [id]);
-    return result.rows;
+    // Format the data to match the expected structure
+    return appointments.map(appointment => {
+      const plainAppointment = appointment.get({ plain: true });
+      
+      // Add formatted fields
+      if (plainAppointment.Doctor) {
+        plainAppointment.doctor_first_name = plainAppointment.Doctor.first_name;
+        plainAppointment.doctor_last_name = plainAppointment.Doctor.last_name;
+        delete plainAppointment.Doctor;
+      }
+      
+      return plainAppointment;
+    });
   }
 }
 

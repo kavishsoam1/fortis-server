@@ -2,17 +2,8 @@
 
 A modern healthcare appointment management system built with Node.js microservices and Kubernetes.
 
-## Architecture
 
-This project implements a microservices architecture for a healthcare appointment system with three main services:
-
-1. **Patient Service**: Manages patient data and records
-2. **Doctor Service**: Manages doctor profiles and availability
-3. **Appointment Service**: Handles scheduling and management of appointments
-
-All services connect to a shared PostgreSQL database, but each service operates within its own schema to maintain data isolation.
-
-## Database Design
+<!-- ## Database Design
 
 The system uses PostgreSQL with the following schema structure:
 
@@ -90,7 +81,7 @@ health-services-microservices/
 - `GET /api/appointments/doctor/:doctorId` - Get appointments for a doctor
 - `GET /api/appointments/patient/:patientId` - Get appointments for a patient
 - `GET /api/appointments/status/:status` - Get appointments by status
-- `GET /api/appointments/date-range` - Get appointments by date range
+- `GET /api/appointments/date-range` - Get appointments by date range -->
 
 ## Getting Started
 
@@ -109,18 +100,26 @@ health-services-microservices/
    ```
 
 2. Install dependencies for all services:
+
+   **Option A:** Standard installation (with git hooks)
    ```bash
-   cd shared && npm install && cd ..
-   cd patient-service && npm install && cd ..
-   cd doctor-service && npm install && cd ..
-   cd appointment-service && npm install && cd ..
+   npm install
    ```
+   
+   **Option B:** Setup without git hooks (recommended if you have Node.js path issues)
+   ```bash
+   npm run setup-repo
+   ```
+   
+   Both options will install dependencies for all microservices thanks to npm workspaces.
+   See [WORKSPACE-README.md](WORKSPACE-README.md) for more details on working with npm workspaces.
 
 3. Create .env files in each service directory:
    ```bash
    cp patient-service/.env.example patient-service/.env
    cp doctor-service/.env.example doctor-service/.env
    cp appointment-service/.env.example appointment-service/.env
+   cp registration-service/.env.example registration-service/.env
    ```
 
 4. Start PostgreSQL (using Docker):
@@ -132,19 +131,31 @@ health-services-microservices/
      postgres:14
    ```
 
-5. Initialize the database schema:
+5. Initialize the database schema using Sequelize migrations:
    ```bash
-   psql -U postgres -d health_services -f shared/db-schema.sql
+   node migrate.js
+   ```
+   
+   This will run all Sequelize migrations to create the required schemas and tables.
+   
+   See [DATABASE-SETUP.md](DATABASE-SETUP.md) for detailed information about the database structure.
+
+6. Start services:
+   
+   Start all services in parallel:
+   ```bash
+   npm start
+   ```
+   
+   Or start individual services:
+   ```bash
+   npm run start:patient
+   npm run start:doctor
+   npm run start:appointment
+   npm run start:registration
    ```
 
-6. Start each service:
-   ```bash
-   cd patient-service && npm run dev
-   cd doctor-service && npm run dev
-   cd appointment-service && npm run dev
-   ```
-
-### Deploying to Kubernetes
+<!-- ### Deploying to Kubernetes
 
 1. Build Docker images for each service:
    ```bash
@@ -166,23 +177,15 @@ health-services-microservices/
    ```bash
    kubectl get pods
    kubectl get services
-   ```
+   ``` -->
 
-## Data Flow and Relationships
+<!-- ## Data Flow and Relationships
 
 The microservices architecture allows each service to operate independently, but they share data through the PostgreSQL database:
 
 - **Patient-Appointment Relationship**: One-to-Many (One patient can have many appointments)
-- **Doctor-Appointment Relationship**: One-to-Many (One doctor can have many appointments)
+- **Doctor-Appointment Relationship**: One-to-Many (One doctor can have many appointments) -->
 
-## Future Improvements
-
-- Implement authentication and authorization
-- Add API rate limiting
-- Create a notification service for appointment reminders
-- Implement service discovery using tools like Consul or etcd
-- Add metrics and monitoring with Prometheus and Grafana
-- Implement distributed tracing with Jaeger or Zipkin
 
 ## License
 

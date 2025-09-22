@@ -2,9 +2,6 @@ const AppointmentModel = require('../models/appointmentModel');
 const { ApiError } = require('../../../shared/error-handler');
 const axios = require('axios');
 
-/**
- * Controller for appointment-related operations
- */
 class AppointmentController {
   /**
    * Create a new appointment
@@ -14,9 +11,11 @@ class AppointmentController {
    */
   static async createAppointment(req, res, next) {
     try {
+      const { user_id } = req.user;
       const appointmentData = req.body;
       
-      // Check for conflicts
+      appointmentData.created_by = user_id;
+      
       const hasConflict = await AppointmentModel.checkForConflicts(
         appointmentData.doctor_id,
         appointmentData.appointment_date,
@@ -27,20 +26,27 @@ class AppointmentController {
         throw new ApiError(409, 'This time slot is already booked. Please choose another time.');
       }
       
-      // Check if patient and doctor exist (could be done via service calls)
-      // For simplicity, we'll rely on the foreign key constraints in PostgreSQL
       
       const appointment = await AppointmentModel.create(appointmentData);
+      
+      await AppointmentModel.createAuditRecord({
+        appointment_id: appointment.appointment_id,
+        action: 'created',
+        old_values: null,
+        new_values: appointment,
+        changed_by: user_id
+      });
+      
+      console.log(`Event: appointment.booked, appointment_id: ${appointment.appointment_id}`);
       
       res.status(201).json({
         success: true,
         data: appointment
       });
     } catch (error) {
-      // Handle foreign key violations
       if (error.code === '23503') { // PostgreSQL foreign key violation
-        if (error.detail.includes('patient_id')) {
-          return next(new ApiError(400, 'Patient not found'));
+        if (error.detail.includes('member_id')) {
+          return next(new ApiError(400, 'Member not found'));
         }
         if (error.detail.includes('doctor_id')) {
           return next(new ApiError(400, 'Doctor not found'));
@@ -207,15 +213,14 @@ class AppointmentController {
   static async updateAppointment(req, res, next) {
     try {
       const { id } = req.params;
+      const { user_id } = req.user;
       const appointmentData = req.body;
       
-      // Check if appointment exists
       const existingAppointment = await AppointmentModel.findById(id);
       if (!existingAppointment) {
         throw new ApiError(404, `Appointment not found with id ${id}`);
       }
       
-      // Check for conflicts if updating date or doctor
       if (
         appointmentData.appointment_date || 
         appointmentData.doctor_id || 
@@ -229,7 +234,7 @@ class AppointmentController {
           doctorId,
           appointmentDate,
           durationMinutes,
-          id // Exclude this appointment from conflict check
+          id 
         );
         
         if (hasConflict) {
@@ -237,17 +242,24 @@ class AppointmentController {
         }
       }
       
-      const updatedAppointment = await AppointmentModel.update(id, appointmentData);
+      const updatedAppointment = await AppointmentModel.update(id, appointmentData, user_id);
+      
+      if (appointmentData.status && appointmentData.status !== existingAppointment.status) {
+        console.log(`Event: appointment.${appointmentData.status}, appointment_id: ${id}`);
+      }
+      
+      if (appointmentData.appointment_date && appointmentData.appointment_date !== existingAppointment.appointment_date) {
+        console.log(`Event: appointment.rescheduled, appointment_id: ${id}`);
+      }
       
       res.status(200).json({
         success: true,
         data: updatedAppointment
       });
     } catch (error) {
-      // Handle foreign key violations
       if (error.code === '23503') {
-        if (error.detail.includes('patient_id')) {
-          return next(new ApiError(400, 'Patient not found'));
+        if (error.detail.includes('member_id')) {
+          return next(new ApiError(400, 'Member not found'));
         }
         if (error.detail.includes('doctor_id')) {
           return next(new ApiError(400, 'Doctor not found'));
@@ -268,13 +280,14 @@ class AppointmentController {
     try {
       const { id } = req.params;
       const { status } = req.body;
+      const { user_id } = req.user;
       
-      const validStatuses = ['scheduled', 'completed', 'cancelled'];
+      const validStatuses = ['scheduled', 'completed', 'cancelled', 'no_show'];
       if (!validStatuses.includes(status)) {
         throw new ApiError(400, `Invalid status. Must be one of: ${validStatuses.join(', ')}`);
       }
       
-      const updatedAppointment = await AppointmentModel.updateStatus(id, status);
+      const updatedAppointment = await AppointmentModel.updateStatus(id, status, user_id);
       
       if (!updatedAppointment) {
         throw new ApiError(404, `Appointment not found with id ${id}`);
@@ -298,7 +311,9 @@ class AppointmentController {
   static async deleteAppointment(req, res, next) {
     try {
       const { id } = req.params;
-      const deleted = await AppointmentModel.delete(id);
+      const { user_id } = req.user;
+      
+      const deleted = await AppointmentModel.delete(id, user_id);
       
       if (!deleted) {
         throw new ApiError(404, `Appointment not found with id ${id}`);
@@ -307,6 +322,74 @@ class AppointmentController {
       res.status(200).json({
         success: true,
         message: `Appointment with id ${id} deleted successfully`
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get available slots by doctor specialty
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async getAvailableSlots(req, res, next) {
+    try {
+      const { specialty } = req.params;
+      const { start_date, end_date } = req.query;
+      
+      if (!start_date || !end_date) {
+        throw new ApiError(400, 'Both start_date and end_date are required');
+      }
+      
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
+      
+      if (isNaN(startDate) || isNaN(endDate)) {
+        throw new ApiError(400, 'Invalid date format. Use ISO date format (YYYY-MM-DD)');
+      }
+      
+      const maxDaysRange = 14; // 2 weeks
+      const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff > maxDaysRange) {
+        throw new ApiError(400, `Date range too large. Maximum range is ${maxDaysRange} days`);
+      }
+      
+      const slots = await AppointmentModel.getAvailableSlots(specialty, start_date, end_date);
+      
+      res.status(200).json({
+        success: true,
+        count: slots.length,
+        data: slots
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Get appointment audit history
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async getAppointmentAuditHistory(req, res, next) {
+    try {
+      const { id } = req.params;
+      
+      const appointment = await AppointmentModel.findById(id);
+      if (!appointment) {
+        throw new ApiError(404, `Appointment not found with id ${id}`);
+      }
+      
+      const history = await AppointmentModel.getAuditHistory(id);
+      
+      res.status(200).json({
+        success: true,
+        count: history.length,
+        data: history
       });
     } catch (error) {
       next(error);

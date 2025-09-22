@@ -1,0 +1,6 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run eslint across all microservices
+echo "Running ESLint checks on all services..."
+npm run lint || { echo "ESLint checks failed. Please fix the errors before pushing."; exit 1; }

@@ -1,0 +1,74 @@
+const jwt = require('jsonwebtoken');
+const { ApiError } = require('../../../shared/error-handler');
+
+/**
+ * Authentication middleware
+ * Verifies the JWT access token in the Authorization header
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const authMiddleware = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      throw new ApiError(401, 'Authorization header is required');
+    }
+    
+    // Check if header format is correct
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      throw new ApiError(401, 'Authorization header format must be "Bearer {token}"');
+    }
+    
+    const token = parts[1];
+    
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fortis-jwt-secret');
+    
+    // Attach user to request object
+    req.user = decoded;
+    
+    next();
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return next(new ApiError(401, 'Invalid token'));
+    }
+    if (error.name === 'TokenExpiredError') {
+      return next(new ApiError(401, 'Token has expired'));
+    }
+    next(error);
+  }
+};
+
+/**
+ * API key middleware for webhooks
+ * Verifies the API key in the request header
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+const apiKeyMiddleware = (req, res, next) => {
+  try {
+    const apiKey = req.headers['x-api-key'];
+    
+    if (!apiKey) {
+      throw new ApiError(401, 'API key header is required');
+    }
+    
+    // Compare with stored API key
+    if (apiKey !== process.env.PAYMENT_API_KEY) {
+      throw new ApiError(401, 'Invalid API key');
+    }
+    
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  authMiddleware,
+  apiKeyMiddleware
+};

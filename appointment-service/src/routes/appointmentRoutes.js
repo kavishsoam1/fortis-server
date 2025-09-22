@@ -2,87 +2,56 @@ const express = require('express');
 const router = express.Router();
 const AppointmentController = require('../controllers/appointmentController');
 const { validate, appointmentValidation } = require('../middlewares/validationMiddleware');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 
-/**
- * @route   POST /api/appointments
- * @desc    Create a new appointment
- * @access  Public
- */
+router.use(authMiddleware);
+
+// Create a new appointment
 router.post(
   '/',
   validate(appointmentValidation.createSchema),
   AppointmentController.createAppointment
 );
 
-/**
- * @route   GET /api/appointments
- * @desc    Get all appointments with pagination
- * @access  Public
- */
+// Get all appointments with pagination
 router.get('/', AppointmentController.getAllAppointments);
 
-/**
- * @route   GET /api/appointments/:id
- * @desc    Get a single appointment by ID
- * @access  Public
- */
+// Get a single appointment by ID
 router.get('/:id', AppointmentController.getAppointmentById);
 
-/**
- * @route   GET /api/appointments/doctor/:doctorId
- * @desc    Get appointments by doctor ID
- * @access  Public
- */
+// Get appointments by doctor ID
 router.get('/doctor/:doctorId', AppointmentController.getAppointmentsByDoctorId);
 
-/**
- * @route   GET /api/appointments/patient/:patientId
- * @desc    Get appointments by patient ID
- * @access  Public
- */
+// Get appointments by patient ID
 router.get('/patient/:patientId', AppointmentController.getAppointmentsByPatientId);
 
-/**
- * @route   GET /api/appointments/status/:status
- * @desc    Get appointments by status
- * @access  Public
- */
+// Get appointments by status
 router.get('/status/:status', AppointmentController.getAppointmentsByStatus);
 
-/**
- * @route   GET /api/appointments/date-range
- * @desc    Get appointments by date range
- * @access  Public
- */
+// Get appointments by date range
 router.get('/date-range', AppointmentController.getAppointmentsByDateRange);
 
-/**
- * @route   PUT /api/appointments/:id
- * @desc    Update an appointment
- * @access  Public
- */
+// Update an appointment
 router.put(
   '/:id',
   validate(appointmentValidation.updateSchema),
   AppointmentController.updateAppointment
 );
 
-/**
- * @route   PATCH /api/appointments/:id/status
- * @desc    Update appointment status
- * @access  Public
- */
+// Update appointment status
 router.patch(
   '/:id/status',
   validate(appointmentValidation.statusUpdateSchema),
   AppointmentController.updateAppointmentStatus
 );
 
-/**
- * @route   DELETE /api/appointments/:id
- * @desc    Delete an appointment
- * @access  Public
- */
+// Delete an appointment
 router.delete('/:id', AppointmentController.deleteAppointment);
+
+// Get available slots by doctor specialty
+router.get('/doctors/:specialty/slots', AppointmentController.getAvailableSlots);
+
+// Get appointment audit history
+router.get('/:id/audit', AppointmentController.getAppointmentAuditHistory);
 
 module.exports = router;

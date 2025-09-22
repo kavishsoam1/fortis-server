@@ -1,0 +1,57 @@
+{
+  "name": "health-services-microservices",
+  "version": "1.0.0",
+  "description": "Health services microservices monorepo",
+  "private": true,
+  "workspaces": [
+    "auth-service",
+    "patient-service",
+    "doctor-service",
+    "appointment-service",
+    "profile-service",
+    "payment-service",
+    "registration-service",
+    "shared"
+  ],
+  "scripts": {
+    "prepare": "husky install || echo 'Husky install skipped (optional)'",
+    "postinstall": "node setup-husky.js || echo 'Husky setup skipped (optional)'",
+    "setup-husky": "node setup-husky.js",
+    "setup-repo": "node setup-repo.js",
+    "lint": "eslint --ext .js ./*/src",
+    "lint:fix": "eslint --fix --ext .js ./*/src",
+    "start": "npm-run-all --parallel start:*",
+    "start:auth": "npm run dev --workspace=auth-service",
+    "start:patient": "npm run dev --workspace=patient-service",
+    "start:doctor": "npm run dev --workspace=doctor-service",
+    "start:appointment": "npm run dev --workspace=appointment-service",
+    "start:payment": "npm run dev --workspace=payment-service",
+    "start:registration": "npm run dev --workspace=registration-service",
+    "start:profile": "npm run dev --workspace=profile-service",
+    "test": "npm run test --workspaces --if-present",
+    "test:auth": "npm run test --workspace=auth-service",
+    "test:patient": "npm run test --workspace=patient-service",
+    "update-workspace-refs": "node update-workspace-refs.js",
+    "migrate": "node migrate.js",
+    "migrate:undo": "cd shared && npm run migrate:undo",
+    "db:seed": "cd shared && npm run seed"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
+    "eslint": "^8.48.0",
+    "eslint-config-prettier": "^9.0.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "npm-run-all": "^4.1.5"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix"
+    ]
+  },
+  "engines": {
+    "node": ">=14",
+    "npm": ">=7"
+  }
+}

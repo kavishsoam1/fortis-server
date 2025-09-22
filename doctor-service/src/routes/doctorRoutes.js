@@ -3,68 +3,36 @@ const router = express.Router();
 const DoctorController = require('../controllers/doctorController');
 const { validate, doctorValidation } = require('../middlewares/validationMiddleware');
 
-/**
- * @route   POST /api/doctors
- * @desc    Create a new doctor
- * @access  Public
- */
+// Create a new doctor
 router.post(
   '/',
   validate(doctorValidation.createSchema),
   DoctorController.createDoctor
 );
 
-/**
- * @route   GET /api/doctors
- * @desc    Get all doctors with pagination
- * @access  Public
- */
+// Get all doctors with pagination
 router.get('/', DoctorController.getAllDoctors);
 
-/**
- * @route   GET /api/doctors/:id
- * @desc    Get a single doctor by ID
- * @access  Public
- */
+// Get a single doctor by ID
 router.get('/:id', DoctorController.getDoctorById);
 
-/**
- * @route   GET /api/doctors/specialization/:specialization
- * @desc    Get doctors by specialization
- * @access  Public
- */
+// Get doctors by specialization
 router.get('/specialization/:specialization', DoctorController.getDoctorsBySpecialization);
 
-/**
- * @route   PUT /api/doctors/:id
- * @desc    Update a doctor
- * @access  Public
- */
+// Update a doctor
 router.put(
   '/:id',
   validate(doctorValidation.updateSchema),
   DoctorController.updateDoctor
 );
 
-/**
- * @route   DELETE /api/doctors/:id
- * @desc    Delete a doctor
- * @access  Public
- */
+// Delete a doctor
 router.delete('/:id', DoctorController.deleteDoctor);
 
-/**
- * @route   GET /api/doctors/:id/appointments
- * @desc    Get all appointments for a doctor
- * @access  Public
- */
+// Get all appointments for a doctor
 router.get('/:id/appointments', DoctorController.getDoctorAppointments);
 
-/**
- * @route   GET /api/doctors/:id/schedule
- * @desc    Get doctor's schedule for a specific date range
- * @access  Public
- */
+// Get doctor's schedule for a specific date range
 router.get('/:id/schedule', DoctorController.getDoctorSchedule);
 
 module.exports = router;

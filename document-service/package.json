@@ -1,0 +1,33 @@
+{
+  "name": "document-service",
+  "version": "1.0.0",
+  "description": "Document and medical records microservice for health services",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "winston": "^3.11.0",
+    "pg": "^8.11.3",
+    "uuid": "^9.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "aws-sdk": "^2.1499.0",
+    "multer-s3": "^2.10.0",
+    "express-fileupload": "^1.4.3",
+    "health-services-shared": "file:../shared"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  }
+}

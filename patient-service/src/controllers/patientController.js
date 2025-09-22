@@ -1,9 +1,6 @@
 const PatientModel = require('../models/patientModel');
 const { ApiError } = require('../../../shared/error-handler');
 
-/**
- * Controller for patient-related operations
- */
 class PatientController {
   /**
    * Create a new patient
@@ -20,8 +17,7 @@ class PatientController {
         data: patient
       });
     } catch (error) {
-      // Handle unique constraint violations
-      if (error.code === '23505') { // PostgreSQL unique violation error code
+      if (error.code === '23505') {
         return next(new ApiError(400, 'A patient with that email already exists'));
       }
       next(error);
@@ -140,7 +136,6 @@ class PatientController {
     try {
       const { id } = req.params;
       
-      // First check if patient exists
       const patient = await PatientModel.findById(id);
       if (!patient) {
         throw new ApiError(404, `Patient not found with id ${id}`);

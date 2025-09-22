@@ -1,9 +1,10 @@
 const DoctorModel = require('../models/doctorModel');
+const ScheduleModel = require('../models/scheduleModel');
+const TimeOffModel = require('../models/timeOffModel');
+const DepartmentModel = require('../models/departmentModel');
+const SpecialtyModel = require('../models/specialtyModel');
 const { ApiError } = require('../../../shared/error-handler');
 
-/**
- * Controller for doctor-related operations
- */
 class DoctorController {
   /**
    * Create a new doctor
@@ -20,8 +21,7 @@ class DoctorController {
         data: doctor
       });
     } catch (error) {
-      // Handle unique constraint violations
-      if (error.code === '23505') { // PostgreSQL unique violation error code
+      if (error.code === '23505') {
         if (error.detail.includes('email')) {
           return next(new ApiError(400, 'A doctor with that email already exists'));
         }
@@ -67,15 +67,25 @@ class DoctorController {
   static async getDoctorById(req, res, next) {
     try {
       const { id } = req.params;
-      const doctor = await DoctorModel.findById(id);
+      const useUUID = req.query.use_uuid === 'true';
+      const doctor = await DoctorModel.findById(id, useUUID);
       
       if (!doctor) {
         throw new ApiError(404, `Doctor not found with id ${id}`);
       }
       
+      const schedule = await ScheduleModel.findByDoctorId(doctor.id);
+      const timeOff = await TimeOffModel.findByDoctorId(doctor.id, {
+        startDate: new Date().toISOString().split('T')[0] // Get from today onwards
+      });
+      
       res.status(200).json({
         success: true,
-        data: doctor
+        data: {
+          ...doctor,
+          schedule,
+          time_off: timeOff
+        }
       });
     } catch (error) {
       next(error);
@@ -92,6 +102,15 @@ class DoctorController {
     try {
       const { specialization } = req.params;
       const doctors = await DoctorModel.findBySpecialization(specialization);
+      
+      if (req.query.include_schedule === 'true' && doctors.length > 0) {
+        const doctorIds = doctors.map(doctor => doctor.id);
+        const schedulesByDoctor = await ScheduleModel.getMultipleDoctorSchedules(doctorIds);
+        
+        doctors.forEach(doctor => {
+          doctor.schedule = schedulesByDoctor[doctor.id] || [];
+        });
+      }
       
       res.status(200).json({
         success: true,
@@ -173,7 +192,6 @@ class DoctorController {
     try {
       const { id } = req.params;
       
-      // First check if doctor exists
       const doctor = await DoctorModel.findById(id);
       if (!doctor) {
         throw new ApiError(404, `Doctor not found with id ${id}`);
@@ -201,24 +219,200 @@ class DoctorController {
     try {
       const { id } = req.params;
       const { start_date, end_date } = req.query;
+      const useUUID = req.query.use_uuid === 'true';
       
-      // Validate date inputs
-      if (!start_date || !end_date) {
-        throw new ApiError(400, 'Both start_date and end_date query parameters are required');
-      }
-      
-      // Check if doctor exists
-      const doctor = await DoctorModel.findById(id);
+      const doctor = await DoctorModel.findById(id, useUUID);
       if (!doctor) {
         throw new ApiError(404, `Doctor not found with id ${id}`);
       }
       
-      const schedule = await DoctorModel.getSchedule(id, start_date, end_date);
+      const weeklySchedule = await ScheduleModel.findByDoctorId(doctor.id);
+      
+      let timeOff = [];
+      if (start_date && end_date) {
+        timeOff = await TimeOffModel.findByDoctorId(doctor.id, { startDate: start_date, endDate: end_date });
+      } else {
+        timeOff = await TimeOffModel.findByDoctorId(doctor.id);
+      }
+      
+      let appointments = [];
+      if (start_date && end_date) {
+        appointments = await DoctorModel.getAppointmentsByDateRange(doctor.id, start_date, end_date);
+      }
       
       res.status(200).json({
         success: true,
-        count: schedule.length,
-        data: schedule
+        data: {
+          doctor: {
+            id: doctor.id,
+            doctor_id: doctor.doctor_id,
+            name: `${doctor.first_name} ${doctor.last_name}`,
+            specialty: doctor.specialty_name,
+            department: doctor.department_name
+          },
+          weekly_schedule: weeklySchedule,
+          time_off: timeOff,
+          appointments
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Add weekly schedule for a doctor
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async addDoctorSchedule(req, res, next) {
+    try {
+      const { id } = req.params;
+      const useUUID = req.query.use_uuid === 'true';
+      const { schedule_data } = req.body;
+      
+      const doctor = await DoctorModel.findById(id, useUUID);
+      if (!doctor) {
+        throw new ApiError(404, `Doctor not found with id ${id}`);
+      }
+      
+      if (!Array.isArray(schedule_data) || schedule_data.length === 0) {
+        throw new ApiError(400, 'Schedule data must be a non-empty array');
+      }
+      
+      const processedData = schedule_data.map(entry => ({
+        ...entry,
+        doctor_id: doctor.id
+      }));
+      
+      const createdSchedules = await ScheduleModel.createBulk(processedData);
+      
+      res.status(201).json({
+        success: true,
+        count: createdSchedules.length,
+        data: createdSchedules
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
+   * Delete a schedule entry
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async deleteScheduleEntry(req, res, next) {
+    try {
+      const { schedule_id } = req.params;
+      
+      const schedule = await ScheduleModel.findById(schedule_id);
+      if (!schedule) {
+        throw new ApiError(404, `Schedule not found with id ${schedule_id}`);
+      }
+      
+      const deleted = await ScheduleModel.delete(schedule_id);
+      
+      res.status(200).json({
+        success: true,
+        message: `Schedule entry with id ${schedule_id} deleted successfully`
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
+   * Add time off for a doctor
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async addDoctorTimeOff(req, res, next) {
+    try {
+      const { id } = req.params;
+      const useUUID = req.query.use_uuid === 'true';
+      const timeOffData = req.body;
+      
+      const doctor = await DoctorModel.findById(id, useUUID);
+      if (!doctor) {
+        throw new ApiError(404, `Doctor not found with id ${id}`);
+      }
+      
+      timeOffData.doctor_id = doctor.id;
+      
+      const overlapping = await TimeOffModel.findOverlapping(
+        doctor.id, 
+        timeOffData.start_datetime, 
+        timeOffData.end_datetime
+      );
+      
+      if (overlapping.length > 0) {
+        throw new ApiError(409, 'This time off period overlaps with an existing time off entry');
+      }
+      
+      const timeOff = await TimeOffModel.create(timeOffData);
+      
+      res.status(201).json({
+        success: true,
+        data: timeOff
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
+   * Get time off entries for a doctor
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async getDoctorTimeOff(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { start_date, end_date } = req.query;
+      const useUUID = req.query.use_uuid === 'true';
+      
+      const doctor = await DoctorModel.findById(id, useUUID);
+      if (!doctor) {
+        throw new ApiError(404, `Doctor not found with id ${id}`);
+      }
+      
+      const timeOff = await TimeOffModel.findByDoctorId(doctor.id, { startDate: start_date, endDate: end_date });
+      
+      res.status(200).json({
+        success: true,
+        count: timeOff.length,
+        data: timeOff
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  /**
+   * Delete a time off entry
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async deleteTimeOffEntry(req, res, next) {
+    try {
+      const { time_off_id } = req.params;
+      
+      const timeOff = await TimeOffModel.findById(time_off_id);
+      if (!timeOff) {
+        throw new ApiError(404, `Time off entry not found with id ${time_off_id}`);
+      }
+      
+      const deleted = await TimeOffModel.delete(time_off_id);
+      
+      res.status(200).json({
+        success: true,
+        message: `Time off entry with id ${time_off_id} deleted successfully`
       });
     } catch (error) {
       next(error);

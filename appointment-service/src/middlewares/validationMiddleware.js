@@ -1,9 +1,6 @@
 const Joi = require('joi');
 const { ApiError } = require('../../../shared/error-handler');
 
-/**
- * Middleware to validate request data
- */
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate(req.body, {
     abortEarly: false,
@@ -18,11 +15,7 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
-/**
- * Validation schemas for appointment data
- */
 const appointmentValidation = {
-  // Schema for creating a new appointment
   createSchema: Joi.object({
     patient_id: Joi.number().integer().positive().required(),
     doctor_id: Joi.number().integer().positive().required(),
@@ -32,7 +25,6 @@ const appointmentValidation = {
     notes: Joi.string().allow('', null)
   }),
   
-  // Schema for updating an appointment
   updateSchema: Joi.object({
     patient_id: Joi.number().integer().positive(),
     doctor_id: Joi.number().integer().positive(),
@@ -40,9 +32,8 @@ const appointmentValidation = {
     duration_minutes: Joi.number().integer().min(15).max(180),
     status: Joi.string().valid('scheduled', 'completed', 'cancelled'),
     notes: Joi.string().allow('', null)
-  }).min(1), // At least one field must be provided
+  }).min(1),
   
-  // Schema for updating appointment status
   statusUpdateSchema: Joi.object({
     status: Joi.string().valid('scheduled', 'completed', 'cancelled').required()
   })

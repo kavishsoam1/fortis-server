@@ -17,7 +17,7 @@
     "joi": "^17.11.0",
     "winston": "^3.11.0",
     "pg": "^8.11.3",
-    "health-services-shared": "file:../shared"
+    "health-services-shared": "*"
   },
   "devDependencies": {
     "jest": "^29.7.0",
